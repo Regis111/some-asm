@@ -31,7 +31,7 @@ dane segment
 	cyfra1a			db ?,"?"
 	cyfra2a			db ?,"?"
 	wynik			db ?
-	
+	wynik1			db ?,?
 	
 	cyfra1_dlugosc	db ?
 	cyfra2_dlugosc	db ?
@@ -154,7 +154,7 @@ start:
 		l2:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al,3
-			jne zle
+			jne l3
 			mov bx, offset cyfra1
 			push bx
 			mov bx, offset dwa
@@ -163,129 +163,129 @@ start:
 			push bx
 			mov bx, 2
 			push bx
+			mov bx, l3
+			push bx
+			jmp porownanie_liczby
+		l3:
+			mov al, byte ptr cyfra1_dlugosc
+			cmp al,5
+			jne l4
+			mov bx, offset cyfra1
+			push bx
+			mov bx, offset trzy
+			push bx
+			mov bx, 5
+			push bx
+			mov bx, 3
+			push bx
+			mov bx, l4
+			push bx
+			jmp porownanie_liczby
+		l4:
+			mov al, byte ptr cyfra1_dlugosc
+			cmp al, 4
+			jne l5
+			mov bx, offset cyfra1
+			push bx
+			mov bx, offset cztery
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, l5
+			push bx
+			jmp porownanie_liczby
+		l5:
+			mov al, byte ptr cyfra1_dlugosc
+			cmp al, 4
+			jne l6
+			mov bx, offset cyfra1
+			push bx
+			mov bx, offset piec
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, 5
+			push bx
+			mov bx, l6
+			push bx
+			jmp porownanie_liczby
+		l6:
+			mov al, byte ptr cyfra1_dlugosc
+			cmp al,3
+			jne l7
+			mov bx, offset cyfra1
+			push bx
+			mov bx, offset szesc
+			push bx
+			mov bx, 3
+			push bx
+			mov bx, 6
+			push bx
+			mov bx, l7
+			push bx
+			jmp porownanie_liczby
+		l7:
+			mov al, byte ptr cyfra1_dlugosc
+			cmp al,5
+			jne l8
+			mov bx, offset cyfra1
+			push bx
+			mov bx, offset siedem
+			push bx
+			mov bx, 5
+			push bx
+			mov bx, 7
+			push bx
+			mov bx, l8
+			push bx
+			jmp porownanie_liczby
+		l8:
+			mov al, byte ptr cyfra1_dlugosc
+			cmp al,5
+			jne l9
+			mov bx, offset cyfra1
+			push bx
+			mov bx, offset osiem
+			push bx
+			mov bx, 5
+			push bx
+			mov bx, 8
+			push bx
+			mov bx, l9
+			push bx
+			jmp porownanie_liczby
+		l9:
+			mov al, byte ptr cyfra1_dlugosc
+			cmp al,4
+			jne l0
+			mov bx, offset cyfra1
+			push bx
+			mov bx, offset dziewiec
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, 9
+			push bx
+			mov bx, l0
+			push bx
+			jmp porownanie_liczby
+		l0:
+			mov al, byte ptr cyfra1_dlugosc
+			cmp al, 4
+			jne zle
+			mov bx, offset cyfra1
+			push bx
+			mov bx, offset zero
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, 0
+			push bx
 			mov bx, zle
 			push bx
 			jmp porownanie_liczby
-;		l3:
-;			mov al, byte ptr cyfra1_dlugosc
-;			cmp al,3
-;			jne zle
-;			mov bx, offset cyfra1
-;			push bx
-;			mov bx, offset dwa
-;			push bx
-;			mov bx, 3
-;			push bx
-;			mov bx, 2
-;			push bx
-;			mov bx, zle
-;			push bx
-;			jmp porownanie_liczby
-;		l4:
-;			mov al, byte ptr cyfra1_dlugosc
-;			cmp al,3
-;			jne zle
-;			mov bx, offset cyfra1
-;			push bx
-;			mov bx, offset dwa
-;			push bx
-;			mov bx, 3
-;			push bx
-;			mov bx, 2
-;			push bx
-;;			mov bx, zle
-	;		push bx
-	;		jmp porownanie_liczby
-;		l5:
-;			mov al, byte ptr cyfra1_dlugosc
-;			cmp al,3
-;			jne zle
-;;			mov bx, offset cyfra1
-	;		push bx
-	;		mov bx, offset dwa
-;			push bx
-;			mov bx, 3
-;			push bx
-;			mov bx, 2
-;			push bx
-;			mov bx, zle
-;			push bx
-;			jmp porownanie_liczby
-;		l6:
-;			mov al, byte ptr cyfra1_dlugosc
-;			cmp al,3
-;			jne zle
-;			mov bx, offset cyfra1
-;			push bx
-;			mov bx, offset dwa
-;			push bx
-;			mov bx, 3
-;			push bx
-;			mov bx, 2
-;			push bx
-;			mov bx, zle
-;			push bx
-;			jmp porownanie_liczby
-;		l7:
-;			mov al, byte ptr cyfra1_dlugosc
-;			cmp al,3
-;			jne zle
-;			mov bx, offset cyfra1
-;			push bx
-;			mov bx, offset dwa
-;			push bx
-;			mov bx, 3
-;			push bx
-;			mov bx, 2
-;			push bx
-;			mov bx, zle
-;			push bx
-;			jmp porownanie_liczby
-;		l8:
-;			mov al, byte ptr cyfra1_dlugosc
-;			cmp al,3
-;			jne zle
-;			mov bx, offset cyfra1
-;			push bx
-;			mov bx, offset dwa
-;			push bx
-;			mov bx, 3
-;			push bx
-;			mov bx, 2
-;			push bx
-;			mov bx, zle
-;			push bx
-;			jmp porownanie_liczby
-;		l9:
-;			mov al, byte ptr cyfra1_dlugosc
-;			cmp al,3
-;			jne zle
-;			mov bx, offset cyfra1
-;			push bx
-;			mov bx, offset dwa
-;			push bx
-;			mov bx, 3
-;			push bx
-;			mov bx, 2
-;			push bx
-;			mov bx, zle
-;			push bx
-;			jmp porownanie_liczby
-;		l0:
-;			mov al, byte ptr cyfra1_dlugosc
-;			cmp al,3
-;			jne zle
-;			mov bx, offset cyfra1
-;			push bx
-;			mov bx, offset dwa
-;			push bx
-;			mov bx, 3
-;			push bx
-;			mov bx, 2
-;			push bx
-;			mov bx, zle
-;			push bx
-;			jmp porownanie_liczby
 	wywolania_cyfra2:
 		sub bx,bx
 		m1:
@@ -306,9 +306,9 @@ start:
 			push bx
 			jmp porownanie_liczby
 		m2:
-			mov al, byte ptr cyfra1_dlugosc
+			mov al, byte ptr cyfra2_dlugosc
 			cmp al,3
-			jne zle
+			jne m3
 			mov bx, offset cyfra2
 			push bx
 			mov bx, offset dwa
@@ -317,7 +317,127 @@ start:
 			push bx
 			mov bx, 2
 			push bx
-			mov bx, l2
+			mov bx, m3
+			push bx
+			jmp porownanie_liczby
+		m3:
+			mov al, byte ptr cyfra2_dlugosc
+			cmp al,5
+			jne m4
+			mov bx, offset cyfra2
+			push bx
+			mov bx, offset trzy
+			push bx
+			mov bx, 5
+			push bx
+			mov bx, 3
+			push bx
+			mov bx, m4
+			push bx
+			jmp porownanie_liczby
+		m4:
+			mov al, byte ptr cyfra2_dlugosc
+			cmp al, 4
+			jne m5
+			mov bx, offset cyfra2
+			push bx
+			mov bx, offset cztery
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, m5
+			push bx
+			jmp porownanie_liczby
+		m5:
+			mov al, byte ptr cyfra2_dlugosc
+			cmp al, 4
+			jne m6
+			mov bx, offset cyfra2
+			push bx
+			mov bx, offset piec
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, 5
+			push bx
+			mov bx, m6
+			push bx
+			jmp porownanie_liczby
+		m6:
+			mov al, byte ptr cyfra2_dlugosc
+			cmp al,3
+			jne m7
+			mov bx, offset cyfra2
+			push bx
+			mov bx, offset szesc
+			push bx
+			mov bx, 3
+			push bx
+			mov bx, 6
+			push bx
+			mov bx, m7
+			push bx
+			jmp porownanie_liczby
+		m7:
+			mov al, byte ptr cyfra2_dlugosc
+			cmp al,5
+			jne m8
+			mov bx, offset cyfra2
+			push bx
+			mov bx, offset siedem
+			push bx
+			mov bx, 5
+			push bx
+			mov bx, 7
+			push bx
+			mov bx, m8
+			push bx
+			jmp porownanie_liczby
+		m8:
+			mov al, byte ptr cyfra2_dlugosc
+			cmp al,5
+			jne m9
+			mov bx, offset cyfra2
+			push bx
+			mov bx, offset osiem
+			push bx
+			mov bx, 5
+			push bx
+			mov bx, 8
+			push bx
+			mov bx, m9
+			push bx
+			jmp porownanie_liczby
+		m9:
+			mov al, byte ptr cyfra2_dlugosc
+			cmp al,4
+			jne m0
+			mov bx, offset cyfra2
+			push bx
+			mov bx, offset dziewiec
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, 9
+			push bx
+			mov bx, m0
+			push bx
+			jmp porownanie_liczby
+		m0:
+			mov al, byte ptr cyfra2_dlugosc
+			cmp al, 4
+			jne zle
+			mov bx, offset cyfra2
+			push bx
+			mov bx, offset zero
+			push bx
+			mov bx, 4
+			push bx
+			mov bx, 0
+			push bx
+			mov bx, zle
 			push bx
 			jmp porownanie_liczby
 	porownanie_liczby:
@@ -382,7 +502,7 @@ start:
 			jmp porownanie_operatora
 		razy1:
 			mov al, byte ptr oper_dlugosc
-			cmp al, 4
+			cmp al, 5
 			jne zle
 			
 			mov bx, mnozenie
@@ -391,7 +511,7 @@ start:
 			push bx
 			mov bx, offset razy
 			push bx
-			mov bx, 4
+			mov bx, 5
 			push bx
 			mov bx, zle
 			push bx
@@ -419,19 +539,39 @@ start:
 		mov bl, byte ptr ds:[cyfra2a]
 		add al,bl
 		mov byte ptr ds:[wynik], al
-		jmp koniec
+		jmp print
 	odejmowanie:
 		mov al, byte ptr ds:[cyfra1a]
 		mov bl, byte ptr ds:[cyfra2a]
 		sub al,bl
 		mov byte ptr ds:[wynik], al
-		jmp koniec
+		jmp print
 	mnozenie:
 		mov al, byte ptr ds:[cyfra1a]
 		mov bl, byte ptr ds:[cyfra2a]
 		mul bl
 		mov byte ptr ds:[wynik], al
-		jmp koniec
+		jmp print
+	print:
+		mov dl, 10
+		mov ah, 02h
+		int 21h
+		mov dl,13
+		int 21h				;nowa linia
+		
+		
+		mov cl, 10
+		mov ah, 0
+		mov al, byte ptr ds:[wynik]
+		div cl
+		add al, 30h
+		add ah, 30h
+		mov dl, al
+		mov bl, ah
+		mov ah, 2h
+		int 21h
+		mov dl, bl
+		int 21h
 	koniec:
 		mov ah,4ch
 		int 21h
