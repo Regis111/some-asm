@@ -1,8 +1,8 @@
 assume cs:kod , ds:dane , ss:stos1
 dane segment
-	sukces			db 0ah,0dh,"Poprawne dane.","$"
-	porazka			db 0ah,0dh,"Niepoprawne dane.","$"
-	blad_spacji		db 0ah,0dh,"Zbyt duzo spacji.","$"
+	powitanie		db "Enter the expression:$"
+	porazka			db 0ah,0dh,"Invalid input data.","$"
+	blad_spacji		db 0ah,0dh,"Too much spaces or not wrong schema of input",13,10,"Should be: 'digit operator digit'$"
 	jeden			db "one"
 	dwa				db "two"
 	trzy			db "three"
@@ -44,8 +44,11 @@ start:
 	mov ax, seg wstosu
 	mov ss, ax
     
-	mov ax, seg dzialanie
-	mov ds,ax
+	mov ax, seg powitanie
+	mov ds, ax
+	mov ah, 9
+	mov dx, offset powitanie
+	int 21h
 	
 	mov ah, 0ah					;
 	mov dx, offset dzialanie			;
@@ -115,12 +118,8 @@ start:
 		jmp petla1						;inkrementacja zmiennej liczba, gdy została wykryta spacja
 		
 	dobrze:
-		mov ah,9
-		mov dx,offset sukces
-		int 21h
 		call inicjalizacja
 		jmp wywolania_cyfra1
-		;jmp wywolania_cyfra2
 		jmp koniec
 	zle:
 		mov ah,9
@@ -131,7 +130,7 @@ start:
 		mov ah,9
 		mov dx,offset blad_spacji
 		int 21h
-		jmp koniec
+		jmp koniec 
 	wywolania_cyfra1:
 		sub bx,bx
 		l1:
@@ -559,7 +558,8 @@ start:
 		mov dl,13
 		int 21h				;nowa linia
 		
-		
+		jc ujemna
+	print_number:
 		mov cl, 10
 		mov ah, 0
 		mov al, byte ptr ds:[wynik]
@@ -568,6 +568,18 @@ start:
 		add ah, 30h
 		mov dl, al
 		mov bl, ah
+		mov ah, 2h
+		int 21h
+		mov dl, bl
+		int 21h
+		jmp koniec
+	ujemna:
+		mov al, byte ptr ds:[wynik]
+		mov bl, 255
+		sub bl, al
+		inc bl
+		add bl, 30h
+		mov dl, '-'
 		mov ah, 2h
 		int 21h
 		mov dl, bl
@@ -582,6 +594,5 @@ stos1 segment stack
 		dw 200 dup (?)
 wstosu	dw ?
 stos1 ends
-
 
 end start
