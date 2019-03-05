@@ -1,6 +1,12 @@
 assume cs:kod , ds:dane , ss:stos1
+
+stos1 segment stack
+		dw 50 dup (?)
+wstosu	dw ?
+stos1 ends
+
 dane segment
-	powitanie		db "Enter the expression:$"
+	powitanie		db "Enter the expression: $"
 	porazka			db 0ah,0dh,"Invalid input data.","$"
 	blad_spacji		db 0ah,0dh,"Too much spaces or not wrong schema of input",13,10,"Should be: 'digit operator digit'$"
 	jeden			db "one"
@@ -20,18 +26,17 @@ dane segment
 	
 	dzialanie		db 19
 					db ?
-					db 19 dup (0)
+					db 19 dup (?)
 	liczba 			db 0
-	spacje			db 3,3
+	spacje			db ?,?
 	
-	cyfra1          db 6 dup (1)
-	operator		db 5 dup (3)
-	cyfra2          db 6 dup (2)
+	cyfra1          db 6 dup (?)
+	operator		db 5 dup (?)
+	cyfra2          db 6 dup (?)
 	
 	cyfra1a			db ?,"?"
 	cyfra2a			db ?,"?"
 	wynik			db ?
-	wynik1			db ?,?
 	
 	cyfra1_dlugosc	db ?
 	cyfra2_dlugosc	db ?
@@ -55,18 +60,36 @@ start:
 	int 21h						;wprowadzenie wejścia do bufora
 	
 	mov cx,0
-	mov cl, byte ptr ds:[dzialanie+1];wprowadzenie do cx liczby znaków
-	mov si, offset dzialanie +2	;inicjalizacja bx na pierwszy znak wejścia
-	mov bx, offset spacje
+	mov cl, byte ptr ds:[dzialanie+1]			;wprowadzenie do cx liczby znaków
+	mov si, offset dzialanie +2					;inicjalizacja si jako iteratora w petla1
+	mov bx, offset spacje						;inicjalizacja bx na pierwszy znak wejścia
 	petla1:
-		cmp byte ptr ds:[si],' '			;porównanie obecnego znaku ze spacją
-		je inkr					;skok do etykiety inkr
-		inc si					;inkrementacja licznika
+		cmp byte ptr ds:[si],' '				;porównanie obecnego znaku ze spacją
+		je inkr									;skok do etykiety inkr
+		inc si									;inkrementacja licznika
 	loop petla1
 	
-	cmp byte ptr ds:[liczba],2	;sprawdzenie czy były 2 spacje
+	cmp byte ptr ds:[liczba],2					;sprawdzenie czy były 2 spacje
 	je dobrze					
 	jne zle
+	
+	inkr:						;
+		inc byte ptr ds:[liczba]		;zliczenie spacji
+		mov ax, si						;
+		sub ax, offset dzialanie+2 		;obliczenie indeksu znaku spacji
+		cmp ax,0						;sprawdzenie możliwości bycia spacji na indeksie 0
+		je zle_spacje							;
+		add ax,1							;
+		cmp al, byte ptr ds:[dzialanie+1]	;sprawdzenie możliwości bycia spacji na indeksie n-1, gdzie n liczba znaków bufora
+		je zle_spacje							;
+		sub ax,1						;
+		mov ds:[bx], ax					;wstawienie wartości indeksu do spacje
+		inc bx							;
+		inc si
+		dec cl
+		cmp byte ptr ds:[si],' ';
+		je zle_spacje
+		jmp petla1						;inkrementacja zmiennej liczba, gdy została wykryta spacja
 	
 	inicjalizacja:
 		mov si, offset dzialanie+2		;
@@ -98,37 +121,21 @@ start:
 		mov byte ptr ds:[cyfra2_dlugosc], cl
 		rep movsb						;inicjalizacja liczby 2
 		ret
-	
-	inkr:						;
-		inc byte ptr ds:[liczba]		;zliczenie spacji
-		mov ax, si						;
-		sub ax, offset dzialanie+2 		;obliczenie indeksu znaku spacji
-		cmp ax,0						;sprawdzenie możliwości bycia spacji na indeksie 0
-		je zle							;
-		add ax,1						;
-		cmp al, byte ptr ds:[dzialanie+1]	;sprawdzenie możliwości bycia spacji na indeksie n-1, gdzie n liczba znaków bufora
-		je zle							;
-		sub ax,1						;
-		mov ds:[bx], ax					;wstawienie wartości indeksu do spacje
-		inc bx							;
-		inc si
-		dec cl
-		cmp byte ptr ds:[si],' ';
-		je zle_spacje
-		jmp petla1						;inkrementacja zmiennej liczba, gdy została wykryta spacja
 		
 	dobrze:
 		call inicjalizacja
-		jmp wywolania_cyfra1
-		jmp koniec
+		call wywolania_cyfra1
+		call wywolania_cyfra2
+		call wywolania_operatora
+		jmp print
 	zle:
 		mov ah,9
-		mov dx,offset porazka
+		mov dx,offset porazka			;wejscie wyglada 'cyfra operator cyfra' ale, ktoras z czesci jest zla
 		int 21h
 		jmp koniec
 	zle_spacje:
 		mov ah,9
-		mov dx,offset blad_spacji
+		mov dx,offset blad_spacji		;wejscie nie wyglada 'cyfra operator cyfra'
 		int 21h
 		jmp koniec 
 	wywolania_cyfra1:
@@ -139,152 +146,112 @@ start:
 			mov al, byte ptr cyfra1_dlugosc		
 			cmp al,3							;porownywanie dlugosci stringów
 			jne l2
-			mov bx, offset cyfra1				
-			push bx								;ładowanie offsetu inputu
-			mov bx, offset jeden
-			push bx								;ładowanie offsetu wzorca
-			mov bx, 3
-			push bx								;ładowanie długości stringa
-			mov bx, 1	
-			push bx								;ładowanie samej cyfry
-			mov bx, l2
-			push bx								;ładowanie adresu etykiety do której nastąpi skok, gdy znak się nie będzie zgadzał w czasie porównywania
-			jmp porownanie_liczby				
+			mov si, offset cyfra1				;ładowanie offsetu inputu
+			mov bx, offset jeden				;ładowanie offsetu wzorca
+			mov cx, 3							;ładowanie długości tekstu
+			mov dx, 1							;ładowanie samej cyfry	
+			mov bp, l2							;ładowanie adresu etykiety do której nastąpi skok, gdy znak się nie będzie zgadzał w czasie porównywania
+			call porownanie_liczby
+			ret
 		l2:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al,3
 			jne l3
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset dwa
-			push bx
-			mov bx, 3
-			push bx
-			mov bx, 2
-			push bx
-			mov bx, l3
-			push bx
-			jmp porownanie_liczby
+			mov cx, 3
+			mov dx, 2
+			mov bp, l3
+			call porownanie_liczby
+			ret
 		l3:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al,5
 			jne l4
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset trzy
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, 3
-			push bx
-			mov bx, l4
-			push bx
-			jmp porownanie_liczby
+			mov cx, 5
+			mov dx, 3
+			mov bp, l4
+			call porownanie_liczby
+			ret
 		l4:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al, 4
 			jne l5
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset cztery
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, l5
-			push bx
-			jmp porownanie_liczby
+			mov cx, 4
+			mov dx, 4
+			mov bp, l5
+			call porownanie_liczby
+			ret
 		l5:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al, 4
 			jne l6
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset piec
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, l6
-			push bx
-			jmp porownanie_liczby
+			mov cx, 4
+			mov dx, 5
+			mov bp, l6
+			call porownanie_liczby
+			ret
 		l6:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al,3
 			jne l7
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset szesc
-			push bx
-			mov bx, 3
-			push bx
-			mov bx, 6
-			push bx
-			mov bx, l7
-			push bx
-			jmp porownanie_liczby
+			mov cx, 3
+			mov dx, 6
+			mov bp, l7
+			call porownanie_liczby
+			ret
 		l7:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al,5
 			jne l8
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset siedem
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, 7
-			push bx
-			mov bx, l8
-			push bx
-			jmp porownanie_liczby
+			mov cx, 5
+			mov dx, 7
+			mov bp, l8
+			call porownanie_liczby
+			ret
 		l8:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al,5
 			jne l9
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset osiem
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, 8
-			push bx
-			mov bx, l9
-			push bx
-			jmp porownanie_liczby
+			mov cx, 5
+			mov dx, 8
+			mov bp, l9
+			call porownanie_liczby
+			ret
 		l9:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al,4
 			jne l0
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset dziewiec
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, 9
-			push bx
-			mov bx, l0
-			push bx
-			jmp porownanie_liczby
+			mov cx, 4
+			mov dx, 9
+			mov bp, l0
+			call porownanie_liczby
+			ret
 		l0:
 			mov al, byte ptr cyfra1_dlugosc
 			cmp al, 4
 			jne zle
-			mov bx, offset cyfra1
-			push bx
+			mov si, offset cyfra1
 			mov bx, offset zero
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, 0
-			push bx
-			mov bx, zle
-			push bx
-			jmp porownanie_liczby
+			mov cx, 4
+			mov dx, 0
+			mov bp, zle
+			call porownanie_liczby
+			ret
 	wywolania_cyfra2:
 		sub bx,bx
 		m1:
@@ -293,158 +260,113 @@ start:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al,3
 			jne m2
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset jeden
-			push bx
-			mov bx, 3
-			push bx
-			mov bx, 1
-			push bx
-			mov bx, m2
-			push bx
-			jmp porownanie_liczby
+			mov cx, 3
+			mov dx, 1
+			mov bp, m2
+			call porownanie_liczby
+			ret
 		m2:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al,3
 			jne m3
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset dwa
-			push bx
-			mov bx, 3
-			push bx
-			mov bx, 2
-			push bx
-			mov bx, m3
-			push bx
-			jmp porownanie_liczby
+			mov cx, 3
+			mov dx, 2
+			mov bp, m3
+			call porownanie_liczby
+			ret
 		m3:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al,5
 			jne m4
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset trzy
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, 3
-			push bx
-			mov bx, m4
-			push bx
-			jmp porownanie_liczby
+			mov cx, 5
+			mov dx, 3
+			mov bp, m4
+			call porownanie_liczby
+			ret
 		m4:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al, 4
 			jne m5
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset cztery
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, m5
-			push bx
-			jmp porownanie_liczby
+			mov cx, 4
+			mov dx, 4
+			mov bp, m5
+			call porownanie_liczby
+			ret
 		m5:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al, 4
 			jne m6
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset piec
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, m6
-			push bx
-			jmp porownanie_liczby
+			mov cx, 4
+			mov dx, 5
+			mov bp, m6
+			call porownanie_liczby
+			ret
 		m6:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al,3
 			jne m7
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset szesc
-			push bx
-			mov bx, 3
-			push bx
-			mov bx, 6
-			push bx
-			mov bx, m7
-			push bx
-			jmp porownanie_liczby
+			mov cx, 3
+			mov dx, 6
+			mov bp, m7
+			call porownanie_liczby
+			ret
 		m7:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al,5
 			jne m8
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset siedem
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, 7
-			push bx
-			mov bx, m8
-			push bx
-			jmp porownanie_liczby
+			mov cx, 5
+			mov dx, 7
+			mov bp, m8
+			call porownanie_liczby
+			ret
 		m8:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al,5
 			jne m9
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset osiem
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, 8
-			push bx
-			mov bx, m9
-			push bx
-			jmp porownanie_liczby
+			mov cx, 5
+			mov dx, 8
+			mov bp, m9
+			call porownanie_liczby
+			ret
 		m9:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al,4
 			jne m0
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset dziewiec
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, 9
-			push bx
-			mov bx, m0
-			push bx
-			jmp porownanie_liczby
+			mov cx, 4
+			mov dx, 9
+			mov bp, m0
+			call porownanie_liczby
+			ret
 		m0:
 			mov al, byte ptr cyfra2_dlugosc
 			cmp al, 4
 			jne zle
-			mov bx, offset cyfra2
-			push bx
+			mov si, offset cyfra2
 			mov bx, offset zero
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, 0
-			push bx
-			mov bx, zle
-			push bx
-			jmp porownanie_liczby
+			mov cx, 4
+			mov dx, 0
+			mov bp, zle
+			call porownanie_liczby
+			ret
 	porownanie_liczby:
-		pop bp							;adres etykiety
-		pop dx							;cyfra
-		pop cx							;liczba znaków w stringu
-		pop bx							;offset wzorca
-		pop si							;offset input-u
 		petla2:
 			mov al, byte ptr ds:[bx]
 			cmp al, byte ptr es:[si]
@@ -453,75 +375,54 @@ start:
 			inc bx
 		loop petla2						;petla poruwnująca znaki wzorca i input-u
 		pop bp 
-		jmp bp							;skok do etykiety wywolania_cyfra2 lub porownanie_operatora
+		call bp							;wywolanie init_cyfra1 lub init_cyfra2
+		ret								
 	return1:
 		jmp bp
-	
+		
 	init_cyfra1:
 		mov byte ptr ds:[cyfra1a], dl
-		jmp wywolania_cyfra2
+		ret
 	init_cyfra2:
 		mov byte ptr ds:[cyfra2a], dl
-		jmp wywolania_operatora
-	
-	
+		ret	
+		
 	wywolania_operatora:
 		sub bx,bx
 		plus1:	
 			mov al, byte ptr oper_dlugosc
 			cmp al, 4
 			jne minus1
-			
-			mov bx, dodawanie
-			push bx
-			mov bx, offset operator
-			push bx
-			mov bx, offset plus
-			push bx
-			mov bx, 4
-			push bx
-			mov bx, minus1
-			push bx
-			jmp porownanie_operatora
+			mov di, dodawanie						;adres etykiety dzialania
+			mov si, offset operator					;adres operatora z wejscia
+			mov bx, offset plus						;adres operatora wzorca
+			mov cx, 4								;dlugosc tekstu operatora
+			mov bp, minus1							;adres nastepnej etykiety w razie porazki przy porownywaniu
+			call porownanie_operatora
+			ret
 		minus1:
 			mov al, byte ptr oper_dlugosc
 			cmp al, 5
 			jne razy1
-			
-			mov bx, odejmowanie
-			push bx
-			mov bx, offset operator
-			push bx
+			mov di, odejmowanie
+			mov si, offset operator
 			mov bx, offset minus
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, razy1
-			push bx
-			jmp porownanie_operatora
+			mov cx, 5
+			mov bp, razy1
+			call porownanie_operatora
+			ret
 		razy1:
 			mov al, byte ptr oper_dlugosc
 			cmp al, 5
 			jne zle
-			
-			mov bx, mnozenie
-			push bx
-			mov bx, offset operator
-			push bx
+			mov di, mnozenie
+			mov si, offset operator
 			mov bx, offset razy
-			push bx
-			mov bx, 5
-			push bx
-			mov bx, zle
-			push bx
-			jmp porownanie_operatora
-		
+			mov cx, 5
+			mov bp, zle
+			call porownanie_operatora
+			ret
 	porownanie_operatora:
-		pop bp
-		pop cx
-		pop bx
-		pop si
-		pop di
 		petla3:
 			mov al, byte ptr ds:[bx]
 			cmp al, byte ptr es:[si]
@@ -529,7 +430,8 @@ start:
 			inc si
 			inc bx
 		loop petla3
-		jmp di
+		call di
+		ret
 	return2:
 		jmp bp
 
@@ -538,26 +440,25 @@ start:
 		mov bl, byte ptr ds:[cyfra2a]
 		add al,bl
 		mov byte ptr ds:[wynik], al
-		jmp print
+		ret
 	odejmowanie:
 		mov al, byte ptr ds:[cyfra1a]
 		mov bl, byte ptr ds:[cyfra2a]
 		sub al,bl
 		mov byte ptr ds:[wynik], al
-		jmp print
+		ret
 	mnozenie:
 		mov al, byte ptr ds:[cyfra1a]
 		mov bl, byte ptr ds:[cyfra2a]
 		mul bl
 		mov byte ptr ds:[wynik], al
-		jmp print
+		ret
 	print:
 		mov dl, 10
 		mov ah, 02h
 		int 21h
 		mov dl,13
 		int 21h				;nowa linia
-		
 		jc ujemna
 	print_number:
 		mov cl, 10
@@ -589,10 +490,4 @@ start:
 		int 21h
 
 kod ends	
-	
-stos1 segment stack
-		dw 200 dup (?)
-wstosu	dw ?
-stos1 ends
-
 end start
