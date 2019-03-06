@@ -6,41 +6,52 @@ wstosu	dw ?
 stos1 ends
 
 dane segment
-	powitanie		db "Enter the expression: $"
-	porazka			db 0ah,0dh,"Invalid input data.","$"
-	blad_spacji		db 0ah,0dh,"Too much spaces or not wrong schema of input",13,10,"Should be: 'digit operator digit'$"
-	jeden			db "one"
-	dwa				db "two"
-	trzy			db "three"
-	cztery			db "four"
-	piec			db "five"
-	szesc			db "six"
-	siedem			db "seven"
-	osiem			db "eight"
-	dziewiec		db "nine"
-	zero			db "zero"
+	powitanie		db	"Enter the expression: $"
+	porazka			db	0ah,0dh,"Invalid input data.","$"
+	blad_spacji		db	0ah,0dh,"Too much spaces or not wrong schema of input",13,10,"Should be: 'digit operator digit'$"
 	
-	plus			db "plus"
-	minus			db "minus"
-	razy			db "times"
+	dwad			db	"twenty-$"
+	trzyd			db	"thirty-$"
+	czteryd			db	"fourty-$"
+	piecd			db	"fifty-$"
+	szescd			db	"sixty-$"
+	siedemd			db	"seventy-$"
+	osiemd			db	"eighty-$"
+	dziewiecd		db	"ninety-$"
 	
-	dzialanie		db 19
-					db ?
-					db 19 dup (?)
-	liczba 			db 0
-	spacje			db ?,?
+	jeden			db	"one$"
+	dwa				db	"two$"
+	trzy			db	"three$"
+	cztery			db	"four$"
+	piec			db	"five$"
+	szesc			db	"six$"
+	siedem			db	"seven$"
+	osiem			db	"eight$"
+	dziewiec		db	"nine$"
+	zero			db	"zero$"
+	dziesiec		db	"ten$"
 	
-	cyfra1          db 6 dup (?)
-	operator		db 5 dup (?)
-	cyfra2          db 6 dup (?)
+	plus			db	"plus"
+	minus			db	"minus $"
+	razy			db	"times"
 	
-	cyfra1a			db ?,"?"
-	cyfra2a			db ?,"?"
-	wynik			db ?
+	dzialanie		db	19
+					db	?
+					db	19 dup (?)
+	liczba 			db	0
+	spacje			db	?,?
 	
-	cyfra1_dlugosc	db ?
-	cyfra2_dlugosc	db ?
-	oper_dlugosc	db ?
+	cyfra1          db	6 dup (?)
+	operator		db	5 dup (?)
+	cyfra2          db	6 dup (?)
+	
+	cyfra1a			db	?,"?"
+	cyfra2a			db	?,"?"
+	wynik			db	?
+	
+	cyfra1_dlugosc	db	?
+	cyfra2_dlugosc	db	?
+	oper_dlugosc	db	?
 dane ends
 kod segment
 start:               
@@ -127,7 +138,7 @@ start:
 		call wywolania_cyfra1
 		call wywolania_cyfra2
 		call wywolania_operatora
-		jmp print
+		jmp print_slowo
 	zle:
 		mov ah,9
 		mov dx,offset porazka			;wejscie wyglada 'cyfra operator cyfra' ale, ktoras z czesci jest zla
@@ -453,41 +464,182 @@ start:
 		mul bl
 		mov byte ptr ds:[wynik], al
 		ret
-	print:
-		mov dl, 10
-		mov ah, 02h
+	
+	ujemna1:
+		mov al, byte ptr ds:[wynik]
+		mov bh, 255
+		sub bh, al
+		inc bh
+		
+		mov dx, offset minus
+		mov ah, 9
 		int 21h
-		mov dl,13
-		int 21h				;nowa linia
-		jc ujemna
-	print_number:
+		
+		jmp print_j
+		
+	print_slowo:
+		mov dl, 10
+	    mov ah, 02h
+	    int 21h
+	    mov dl,13
+	    int 21h
+	
+		jc ujemna1
+		
 		mov cl, 10
 		mov ah, 0
 		mov al, byte ptr ds:[wynik]
 		div cl
-		add al, 30h
-		add ah, 30h
-		mov dl, al
-		mov bl, ah
-		mov ah, 2h
+		
+		mov bx, ax
+		
+		cmp bl, 0
+		je print_j
+		cmp bl, 1
+		je print_1d
+		cmp bl, 2
+		je print_2d
+		cmp bl, 3
+		je print_3d
+		cmp bl, 4
+		je print_4d
+		cmp bl, 5
+		je print_5d
+		cmp bl, 6
+		je print_6d
+		cmp bl, 7
+		je print_7d
+		cmp bl, 8
+		je print_8d
+		cmp bl, 9
+		je print_9d
+		jmp koniec
+	print_j:
+	
+		cmp bh, 1
+		je print_1
+		cmp bh, 2
+		je print_2
+		cmp bh, 3
+		je print_3
+		cmp bh, 4
+		je print_4
+		cmp bh, 5
+		je print_5
+		cmp bh, 6
+		je print_6
+		cmp bh, 7
+		je print_7
+		cmp bh, 8
+		je print_8
+		cmp bh, 9
+		je print_9
+		cmp bh, 0
+		je print_0
+	
+	
+	print_1d:
+		mov ah,9
+		mov dx, offset dziesiec
 		int 21h
-		mov dl, bl
+		jmp print_j
+	print_2d:
+		mov ah,9
+		mov dx, offset dwad
+		int 21h
+		jmp print_j
+	print_3d:
+		mov ah,9
+		mov dx, offset trzyd
+		int 21h
+		jmp print_j
+	print_4d:
+		mov ah,9
+		mov dx, offset czteryd
+		int 21h
+		jmp print_j
+	print_5d:
+		mov ah,9
+		mov dx, offset piecd
+		int 21h
+		jmp print_j
+	print_6d:
+		mov ah,9
+		mov dx, offset szescd
+		int 21h
+		jmp print_j
+	print_7d:
+		mov ah,9
+		mov dx, offset siedemd
+		int 21h
+		jmp print_j
+	print_8d:
+		mov ah,9
+		mov dx, offset osiemd
+		int 21h
+		jmp print_j
+	print_9d:
+		mov ah,9
+		mov dx, offset dziewiecd
+		int 21h
+		jmp print_j
+	
+	
+	print_1:
+		mov ah,9
+		mov dx, offset jeden
 		int 21h
 		jmp koniec
-	ujemna:
-		mov al, byte ptr ds:[wynik]
-		mov bl, 255
-		sub bl, al
-		inc bl
-		add bl, 30h
-		mov dl, '-'
-		mov ah, 2h
+	print_2:
+		mov ah,9
+		mov dx, offset dwa
 		int 21h
-		mov dl, bl
+		jmp koniec
+	print_3:
+		mov ah,9
+		mov dx, offset trzy
 		int 21h
+		jmp koniec
+	print_4:
+		mov ah,9
+		mov dx, offset cztery
+		int 21h
+		jmp koniec
+	print_5:
+		mov ah,9
+		mov dx, offset piec
+		int 21h
+		jmp koniec
+	print_6:
+		mov ah,9
+		mov dx, offset szesc
+		int 21h
+		jmp koniec
+	print_7:
+		mov ah,9
+		mov dx, offset siedem
+		int 21h
+		jmp koniec
+	print_8:
+		mov ah,9
+		mov dx, offset osiem
+		int 21h
+		jmp koniec
+	print_9:
+		mov ah,9
+		mov dx, offset dziewiec
+		int 21h
+		jmp koniec
+	print_0:
+		mov ah,9
+		mov dx, offset zero
+		int 21h
+		jmp koniec
+			
 	koniec:
 		mov ah,4ch
 		int 21h
+
 
 kod ends	
 end start
