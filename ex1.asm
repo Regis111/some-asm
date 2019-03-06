@@ -10,14 +10,14 @@ dane segment
 	porazka			db	0ah,0dh,"Invalid input data.","$"
 	blad_spacji		db	0ah,0dh,"Too much spaces or not wrong schema of input",13,10,"Should be: 'digit operator digit'$"
 	
-	dwad			db	"twenty-$"
-	trzyd			db	"thirty-$"
-	czteryd			db	"fourty-$"
-	piecd			db	"fifty-$"
-	szescd			db	"sixty-$"
-	siedemd			db	"seventy-$"
-	osiemd			db	"eighty-$"
-	dziewiecd		db	"ninety-$"
+	dwad			db	"twenty $"
+	trzyd			db	"thirty $"
+	czteryd			db	"fourty $"
+	piecd			db	"fifty $"
+	szescd			db	"sixty $"
+	siedemd			db	"seventy $"
+	osiemd			db	"eighty $"
+	dziewiecd		db	"ninety $"
 	
 	jeden			db	"one$"
 	dwa				db	"two$"
@@ -30,6 +30,16 @@ dane segment
 	dziewiec		db	"nine$"
 	zero			db	"zero$"
 	dziesiec		db	"ten$"
+	
+	jedynascie		db "eleven$"
+	dwanascie		db "twelve$"
+	trzynascie		db "thirteen$"
+	czternascie		db "fourteen$"
+	pietnascie		db "fifteen$"
+	szesnascie		db "sixteen$"
+	siedemnascie	db "seventeen$"
+	osiemnascie		db "eighteen$"
+	dziewiecnascie	db "nineteen$"
 	
 	plus			db	"plus"
 	minus			db	"minus $"
@@ -58,16 +68,16 @@ start:
     
     mov sp, offset wstosu
 	mov ax, seg wstosu
-	mov ss, ax
+	mov ss, ax					;inicjalizacja stosu
     
 	mov ax, seg powitanie
 	mov ds, ax
 	mov ah, 9
 	mov dx, offset powitanie
-	int 21h
+	int 21h						;powitanie
 	
 	mov ah, 0ah					;
-	mov dx, offset dzialanie			;
+	mov dx, offset dzialanie	;
 	int 21h						;wprowadzenie wejścia do bufora
 	
 	mov cx,0
@@ -105,32 +115,32 @@ start:
 	inicjalizacja:
 		mov si, offset dzialanie+2		;
 		mov di, offset cyfra1			;
-		mov cl, byte ptr ds:[spacje]
-		mov byte ptr ds:[cyfra1_dlugosc], cl	;	
-		rep movsb								;inicjalizacja liczby 1
+		mov cl, byte ptr [spacje]
+		mov byte ptr [cyfra1_dlugosc], cl	;	
+		rep movsb								;inicjalizacja cyfry 1
 		
 		mov si, offset dzialanie+2		
 		mov ax,0
-		mov al, byte ptr ds:[spacje]
+		mov al, byte ptr [spacje]
 		add si, ax
 		add si, 1
 		mov di, offset operator
-		mov al, byte ptr ds:[spacje+1]
-		sub al, byte ptr ds:[spacje]
+		mov al, byte ptr [spacje+1]
+		sub al, byte ptr [spacje]
 		sub al, 1
 		mov cl,al
-		mov byte ptr ds:[oper_dlugosc], cl
-		rep movsb						;inicjalizacja operatora
+		mov byte ptr [oper_dlugosc], cl
+		rep movsb							;inicjalizacja operatora
 		
 		mov si, offset dzialanie+2+1
-		add si, word ptr ds:[spacje+1]
+		add si, word ptr [spacje+1]
 		mov di, offset cyfra2
-		mov al, byte ptr ds:[dzialanie+1]
-		sub al, byte ptr ds:[spacje+1]
+		mov al, byte ptr [dzialanie+1]
+		sub al, byte ptr [spacje+1]
 		sub al,1
 		mov cl, al
-		mov byte ptr ds:[cyfra2_dlugosc], cl
-		rep movsb						;inicjalizacja liczby 2
+		mov byte ptr [cyfra2_dlugosc], cl
+		rep movsb								;inicjalizacja cyfry 2
 		ret
 		
 	dobrze:
@@ -496,7 +506,7 @@ start:
 		cmp bl, 0
 		je print_j
 		cmp bl, 1
-		je print_1d
+		je print_1?
 		cmp bl, 2
 		je print_2d
 		cmp bl, 3
@@ -537,12 +547,28 @@ start:
 		cmp bh, 0
 		je print_0
 	
-	
-	print_1d:
-		mov ah,9
-		mov dx, offset dziesiec
-		int 21h
-		jmp print_j
+	print_1?:
+		cmp bh, 0
+		je print_10
+		cmp bh, 1
+		je print_11
+		cmp bh, 2
+		je print_12
+		cmp bh, 3
+		je print_13
+		cmp bh, 4
+		je print_14
+		cmp bh, 5
+		je print_15
+		cmp bh, 6
+		je print_16
+		cmp bh, 7
+		je print_17
+		cmp bh, 8
+		je print_18
+		cmp bh, 9
+		je print_19
+		
 	print_2d:
 		mov ah,9
 		mov dx, offset dwad
@@ -631,11 +657,65 @@ start:
 		int 21h
 		jmp koniec
 	print_0:
+		cmp al, 0
+		jne koniec
 		mov ah,9
 		mov dx, offset zero
 		int 21h
 		jmp koniec
-			
+	
+		
+	print_10:
+		mov ah,9
+		mov dx, offset dziesiec
+		int 21h
+		jmp koniec
+	print_11:
+		mov ah,9
+		mov dx, offset jedynascie
+		int 21h
+		jmp koniec
+	print_12:
+		mov ah,9
+		mov dx, offset dwanascie
+		int 21h
+		jmp koniec
+	print_13:
+		mov ah,9
+		mov dx, offset trzynascie
+		int 21h
+		jmp koniec
+	print_14:
+		mov ah,9
+		mov dx, offset czternascie
+		int 21h
+		jmp koniec
+	print_15:
+		mov ah,9
+		mov dx, offset pietnascie
+		int 21h
+		jmp koniec
+	print_16:
+		mov ah,9
+		mov dx, offset szesnascie
+		int 21h
+		jmp koniec
+	print_17:
+		mov ah,9
+		mov dx, offset siedemnascie
+		int 21h
+		jmp koniec
+	print_18:
+		mov ah,9
+		mov dx, offset osiemnascie
+		int 21h
+		jmp koniec
+	print_19:
+		mov ah,9
+		mov dx, offset dziewiecnascie
+		int 21h
+		jmp koniec
+	
 	koniec:
 		mov ah,4ch
 		int 21h
