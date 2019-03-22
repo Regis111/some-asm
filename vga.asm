@@ -16,6 +16,21 @@ data1 segment
 	
 	omijane_kolumny dw  0
 	
+	poz_1_bajta		dd	?
+	
+	poz_ost_bajta	dd	?
+	
+	poz_curr_1bajta		dd	?
+	
+	poz_curr_ostbajta	dd	?
+	
+	x0				dw	?
+	y0				dw	?
+	
+	
+	omijane_bajty	dw	0
+	
+	
 	numer_koloru    db  ?
 	
 	adres           dw  ?
@@ -98,24 +113,43 @@ reszta2:
     mov dx, word ptr ds:[size_hd]
     add dx, ax 
     xor cx, cx
-    mov al, 0h
-    mov ah, 42h
+    mov ax, 4200h
     int 21h
     
-przejdz:                                  ;;;;poczatek fragmentu z bledem
+	;call wyznacz_poz_bajta
+	;mov word ptr ds:[poz_1_bajta], dx
+	;mov word ptr ds:[poz_1_bajta+2], ax
+	
+omin_wiersze:                                 
     
 	nop
 	mov bx, ds:[handle]
     mov dx, 3
     mov ax, word ptr ds:[omijane_wiersze]
-    mul dx
+	mul dx
     mov dx, word ptr ds:[size_x]
     mul dx
     mov cx, dx
     mov dx, ax
     mov ax, 4201h
-    int 21h                             ;;;;;;koniec fragmentu z bledem
+    int 21h                            
 	nop
+	
+omin_bajty:
+	nop
+	mov bx, ds:[handle]
+	xor cx, cx
+	mov dx, ds:[omijane_bajty]
+	
+	
+	mov ax, 4201h
+	int 21h
+	nop
+	
+	;call wyznacz_poz_obecna
+	;mov word ptr ds:[poz_curr_1bajta], dx
+	;mov word ptr ds:[poz_curr_1bajta+2], ax
+	
 	
 print:
     mov cx, word ptr ds:[real_y] ;; wykonywac real_y razy
@@ -143,9 +177,26 @@ print:
 		mov dx, ax
 		mov ax, 4201h
         int 21h                                 ;przesun o [omijane_kolumny]
-        
         pop cx
-    loop petla0          
+		
+    loop petla0
+	
+	;call wyznacz_poz_bajta
+    ;mov word ptr ds:[poz_curr_ostbajta], dx
+	;mov word ptr ds:[poz_curr_ostbajta+2], ax
+	
+czekaj:	
+	xor ax, ax
+	int 16h
+	
+	cmp al, 'w'
+	je move_up
+	cmp al, 's'
+	je move_down
+	cmp al, 'a'
+	je move_left
+	cmp al, 'd'
+	je move_right
     
 zamknij_plik:
 
@@ -153,35 +204,63 @@ zamknij_plik:
     mov ah, 3eh
     int 21h
 
-koniec:
+zamknij_program:
 	
-	xor ax, ax
-	int 16h
-	
-	;cmp al, 'w'
-	;je move_up
-	cmp al, 's'
-	je move_down
-	;cmp al, 'a'
-	;je move_left
-	;cmp al, 'd'
-	;je move_right
-    mov ax, 4c00h
-    int 21h                   
+	mov ax, 4c00h
+    int 21h 
 
 move_up:
 	
-
+	nop
+	mov ax, 5
+	add ds:[omijane_wiersze], ax
+	nop
+	jmp reszta2
+	
 move_down:
-
-
+	
+	nop
+	mov ax, 5
+	sub ds:[omijane_wiersze], ax
+	jmp reszta2
+	
 move_left:
-
+	
+	nop
+	mov dx, 5
+	mov ax, 3
+	mul dx
+	sub ds:[omijane_bajty], ax
+	cmp word ptr ds:[real_x], 320
+	ja reszta2
+	add ds:[real_x], 5
+	sub ds:[omijane_kolumny], 5
+	jmp reszta2
+	nop
 
 move_right:
+	
+	nop
+	mov dx, 5
+	mov ax, 3
+	mul dx
+	add ds:[omijane_bajty], ax
+	cmp ds:[real_x], 320
+	ja reszta2
+	sub ds:[real_x], 5
+	add ds:[omijane_kolumny], 5
+	jmp reszta2
+	nop
 
-
-		  
+wyznacz_poz_obecna:
+	
+	mov ax, 4201h
+	mov bx, word ptr ds:[handle]
+	xor cx, cx
+	xor dx, dx
+	int 21h
+	ret
+	
 skroc_ilosc_wierszy:
     mov word ptr ds:[real_y], 200
     mov ax, word ptr ds:[size_y]                  
