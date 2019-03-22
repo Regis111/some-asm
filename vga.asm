@@ -7,7 +7,7 @@ data1 segment
     nazwa           db  "tim.bmp",0
 	handle          dw  ?
 	
-	curr_y          db  ?
+	curr_y          dw  ?
 	
 	real_x          dw  ?
 	real_y          dw  ?
@@ -41,6 +41,9 @@ data1 segment
 	
 	size_x          dw  ?
 	size_y          dw  ?
+	
+	real_x1			dw	?
+	real_y1			dw	?
 	
 	bpp             db  ?
 	            
@@ -141,32 +144,46 @@ omin_bajty:
 	xor cx, cx
 	mov dx, ds:[omijane_bajty]
 	
-	
 	mov ax, 4201h
 	int 21h
 	nop
 	
-	;call wyznacz_poz_obecna
-	;mov word ptr ds:[poz_curr_1bajta], dx
-	;mov word ptr ds:[poz_curr_1bajta+2], ax
-	
 	
 print:
-    mov cx, word ptr ds:[real_y] ;; wykonywac real_y razy
+    mov cx, 200 ;; wykonywac real_y razy
     petla0:
-        mov byte ptr ds:[curr_y], cl
+        mov word ptr ds:[curr_y], cx
         push cx
-        mov cx, word ptr ds:[real_x]
+        mov cx, 320
         petla1:                  		;; wykonywac real_x razy
             
+			mov ax, word ptr ds:[y0]
+			mov bx, word ptr ds:[curr_y]
+			cmp ax, bx
+			jb na_czarno
+			sub ax, word ptr ds:[real_y]
+			cmp ax, bx
+			jae na_czarno
+			
+			mov bx, 320
+			sub bx, cx
+			mov ax, 0
+			cmp ax, bx
+			ja na_czarno
+			add ax, word ptr ds:[real_x]
+			cmp ax, bx
+			jbe na_czarno
+			
             call przeczytaj_BGR
             
             call oblicz_bajt
             
-            call oblicz_adres    		;;oblicz adres bajtu i wstaw do si
-            
+			continue:
+			
+			call oblicz_adres    		;;oblicz adres bajtu i wstaw do si
+			
             call zaswiec_punkt                  
-             
+            
         loop petla1
         
         xor cx, cx                                        
@@ -193,11 +210,11 @@ czekaj:
 	je move_up
 	cmp al, 's'
 	je move_down
-	cmp al, 'a'
-	je move_left
-	cmp al, 'd'
-	je move_right
-    
+;	cmp al, 'a'
+;	je move_left
+;	cmp al, 'd'
+;	je move_right
+   
 zamknij_plik:
 
     mov bx, word ptr ds:[handle]
@@ -210,18 +227,35 @@ zamknij_program:
     int 21h 
 
 move_up:
-	
-	nop
-	mov ax, 5
-	add ds:[omijane_wiersze], ax
-	nop
+	cmp ds:[y0], 199
+	jae mama
+	;mov 
+	;cmp ds:[y0], 0
+	;jbe mama1
+	add ds:[y0], 5
 	jmp reszta2
-	
+	mama:
+	add ds:[omijane_wiersze], 5
+	sub ds:[real_y], 5
+	jmp reszta2
+	;mama1:
+	;add ds:[y0], 5
 move_down:
-	
-	nop
-	mov ax, 5
-	sub ds:[omijane_wiersze], ax
+	mov ax, word ptr ds:[real_y1]
+	cmp word ptr ds:[real_y], ax
+	jnz aa
+	sub ds:[y0], 5
+	aa:
+	cmp ds:[y0], 199
+	jb bb
+	sub ds:[omijane_wiersze], 5
+	add ds:[real_y], 5
+	bb:
+	;mov ax, word ptr ds:[y0]
+	;sub ax, word ptr ds:[real_y]
+	;cmp ax, 0
+	;ja reszta2
+	;sub word ptr ds:[real_y], 5
 	jmp reszta2
 	
 move_left:
@@ -263,38 +297,51 @@ wyznacz_poz_obecna:
 	
 skroc_ilosc_wierszy:
     mov word ptr ds:[real_y], 200
-    mov ax, word ptr ds:[size_y]                  
+    mov word ptr ds:[real_y1], 200
+	mov word ptr ds:[y0], 200
+	mov ax, word ptr ds:[size_y]                  
     sub ax, 200               
     mov word ptr ds:[omijane_wiersze], ax
     jmp reszta1
                    
 skroc_ilosc_kolumn:
     mov word ptr ds:[real_x], 320               
-    mov ax, word ptr ds:[size_x]
+    mov word ptr ds:[real_x1], 320
+	mov ax, word ptr ds:[size_x]
     sub ax, 320               
     mov word ptr ds:[omijane_kolumny], ax
-    jmp reszta2
+    mov word ptr ds:[x0], 0
+	jmp reszta2
 
 nie_skracaj_wierszy:
 	mov ax, word ptr ds:[size_y]
+	
+	mov word ptr ds:[y0], ax
+	
 	mov word ptr ds:[real_y], ax 
+	mov word ptr ds:[real_y1], ax
+	
 	jmp reszta1
 
 nie_skracaj_kolumn:
 	mov ax, word ptr ds:[size_x]
+	
 	mov word ptr ds:[real_x], ax
+	mov word ptr ds:[real_x1], ax
+	mov word ptr ds:[x0], 0
+	
 	jmp reszta2
 	
 oblicz_adres: ;;cl - x (size_x -> 0)
     
-    xor bh, bh
-    mov bl, byte ptr ds:[curr_y]
-    mov ax, 320
+    mov bx, word ptr ds:[curr_y]
+    dec bx
+	mov ax, 320
     mul bx
     
-    mov bx, word ptr ds:[real_x]
+    mov bx, 320
     sub bx, cx
-    
+	
     add ax, bx
     mov si, ax
     ret 
@@ -322,7 +369,7 @@ zaswiec_punkt:  ;na bajcie si wyswietl bl
     
     mov al, byte ptr ds:[numer_koloru]
     ;mov al, 4
-    mov es:[si], al
+	mov es:[si], al
     ret
     
 oblicz_bajt: ; wyznacza wartosc bajta do wyswietlenia na podstawie buf i zapisuje do zmiennej
@@ -364,6 +411,10 @@ podziel_al_przez_bl:
 pomnoz_al_przez_bl:    
     mul bl    
     ret
+
+na_czarno:
+	mov byte ptr ds:[numer_koloru], 0
+	jmp continue
 	
 code1 ends
 end start
