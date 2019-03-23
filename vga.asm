@@ -4,52 +4,48 @@ wstosu  dw ?
 stos1 ends                            
 
 data1 segment
-    nazwa           db  "tim.bmp",0
-	handle          dw  ?
+    nazwa           	db  "FLAG.bmp",0
+	handle          	dw  ?
 	
-	curr_y          dw  ?
+	curr_y         		dw  ?
 	
-	real_x          dw  ?
-	real_y          dw  ?
+	real_x          	dw  ?
+	real_y          	dw  ?
 	
-	omijane_wiersze dw  0
+	omijane_wiersze 	dw  0
 	
-	omijane_kolumny dw  0
-	
-	poz_1_bajta		dd	?
-	
-	poz_ost_bajta	dd	?
+	omijane_kolumny 	dw  0
 	
 	poz_curr_1bajta		dd	?
 	
 	poz_curr_ostbajta	dd	?
 	
-	x0				dw	?
-	y0				dw	?
+	x0					dw	?
+	y0					dw	?
 	
 	
-	omijane_bajty	dw	0
+	omijane_bajty		dw	0
+	ominiete_wiersze	dw	0
 	
+	numer_koloru    	db  ?
 	
-	numer_koloru    db  ?
+	adres           	dw  ?
 	
-	adres           dw  ?
+	buf             	db  200 dup(?)
 	
-	buf             db  200 dup(?)
+	size_hd         	dw  ?
 	
-	size_hd         dw  ?
+	size_x				dw  ?
+	size_y				dw  ?
 	
-	size_x          dw  ?
-	size_y          dw  ?
+	real_x1				dw	?
+	real_y1				dw	?
 	
-	real_x1			dw	?
-	real_y1			dw	?
-	
-	bpp             db  ?
+	bpp					db  ?
 	            
-	b               db  ?
-	g               db  ?
-	r               db  ?
+	b               	db  ?
+	g               	db  ?
+	r               	db  ?
 	
 data1 ends
 
@@ -125,7 +121,6 @@ reszta2:
 	
 omin_wiersze:                                 
     
-	nop
 	mov bx, ds:[handle]
     mov dx, 3
     mov ax, word ptr ds:[omijane_wiersze]
@@ -136,18 +131,19 @@ omin_wiersze:
     mov dx, ax
     mov ax, 4201h
     int 21h                            
-	nop
 	
 omin_bajty:
+	
 	nop
 	mov bx, ds:[handle]
 	xor cx, cx
 	mov dx, ds:[omijane_bajty]
-	
+	mov ax, 3
+	mul dx
+	mov dx, ax
 	mov ax, 4201h
 	int 21h
 	nop
-	
 	
 print:
     mov cx, 200 ;; wykonywac real_y razy
@@ -159,11 +155,13 @@ print:
             
 			mov ax, word ptr ds:[y0]
 			mov bx, word ptr ds:[curr_y]
+			dec bx
 			cmp ax, bx
 			jb na_czarno
 			sub ax, word ptr ds:[real_y]
+			inc ax
 			cmp ax, bx
-			jae na_czarno
+			ja na_czarno
 			
 			mov bx, 320
 			sub bx, cx
@@ -175,15 +173,11 @@ print:
 			jbe na_czarno
 			
             call przeczytaj_BGR
-            
             call oblicz_bajt
-            
+			
 			continue:
-			
 			call oblicz_adres    		;;oblicz adres bajtu i wstaw do si
-			
-            call zaswiec_punkt                  
-            
+            call zaswiec_punkt                          
         loop petla1
         
         xor cx, cx                                        
@@ -202,7 +196,8 @@ print:
     ;mov word ptr ds:[poz_curr_ostbajta], dx
 	;mov word ptr ds:[poz_curr_ostbajta+2], ax
 	
-czekaj:	
+czekaj:
+	
 	xor ax, ax
 	int 16h
 	
@@ -210,10 +205,10 @@ czekaj:
 	je move_up
 	cmp al, 's'
 	je move_down
-;	cmp al, 'a'
-;	je move_left
-;	cmp al, 'd'
-;	je move_right
+	cmp al, 'a'
+	je move_left
+	cmp al, 'd'
+	je move_right
    
 zamknij_plik:
 
@@ -222,69 +217,87 @@ zamknij_plik:
     int 21h
 
 zamknij_program:
+	mov al, 3h
+	mov ah, 0
+	int 10h
 	
 	mov ax, 4c00h
     int 21h 
 
 move_up:
-	cmp ds:[y0], 199
-	jae mama
+	mov ax, word ptr ds:[omijane_wiersze]
+	add ax, 5
+	cmp ax, word ptr ds:[ominiete_wiersze]
+	ja czekaj
+	add word ptr ds:[omijane_wiersze], 5
+	jmp reszta2
+	
+	;cmp ds:[y0], 199
+	;jae mama
 	;mov 
 	;cmp ds:[y0], 0
 	;jbe mama1
-	add ds:[y0], 5
-	jmp reszta2
-	mama:
-	add ds:[omijane_wiersze], 5
-	sub ds:[real_y], 5
-	jmp reszta2
+	;add ds:[y0], 5
+	;jmp reszta2
+	;mama:
+	;add ds:[omijane_wiersze], 5
+	;sub ds:[real_y], 5
+	;jmp reszta2
 	;mama1:
 	;add ds:[y0], 5
 move_down:
-	mov ax, word ptr ds:[real_y1]
-	cmp word ptr ds:[real_y], ax
-	jnz aa
-	sub ds:[y0], 5
-	aa:
-	cmp ds:[y0], 199
-	jb bb
-	sub ds:[omijane_wiersze], 5
-	add ds:[real_y], 5
-	bb:
+	
+	cmp word ptr ds:[y0], 199
+	jnz czekaj
+	mov bx, word ptr ds:[omijane_wiersze]
+	sub bx, 5
+	js czekaj
+	sub word ptr ds:[omijane_wiersze], 5
+	jmp reszta2
+	;mov ax, word ptr ds:[real_y1]
+	;cmp word ptr ds:[real_y], ax
+	;jnz aa
+	;sub ds:[y0], 5
+	;aa:
+	;cmp ds:[y0], 199
+	;jb bb
+	;sub ds:[omijane_wiersze], 5
+	;add ds:[real_y], 5
+	;bb:
 	;mov ax, word ptr ds:[y0]
 	;sub ax, word ptr ds:[real_y]
+	
 	;cmp ax, 0
 	;ja reszta2
 	;sub word ptr ds:[real_y], 5
-	jmp reszta2
+	;jmp reszta2
 	
 move_left:
 	
-	nop
-	mov dx, 5
-	mov ax, 3
-	mul dx
-	sub ds:[omijane_bajty], ax
-	cmp word ptr ds:[real_x], 320
-	ja reszta2
-	add ds:[real_x], 5
-	sub ds:[omijane_kolumny], 5
+	mov ax, word ptr ds:[omijane_bajty]
+	sub ax, 5
+	js czekaj
+	sub ds:[omijane_bajty], 5
+	;cmp word ptr ds:[real_x], 320
+	;ja reszta2
+	;add ds:[real_x], 5
+	;sub ds:[omijane_kolumny], 5
 	jmp reszta2
-	nop
 
 move_right:
 	
-	nop
-	mov dx, 5
-	mov ax, 3
-	mul dx
-	add ds:[omijane_bajty], ax
-	cmp ds:[real_x], 320
-	ja reszta2
-	sub ds:[real_x], 5
-	add ds:[omijane_kolumny], 5
+	mov ax, word ptr ds:[omijane_bajty]
+	mov dx, 320
+	add ax, dx
+	cmp ax, word ptr ds:[size_x]
+	jae czekaj
+	
+	add ds:[omijane_bajty], 5
+	;cmp ds:[real_x], 320
+	;ja reszta2
+	;sub ds:[real_x], 5
+	;;add ds:[omijane_kolumny], 5
 	jmp reszta2
-	nop
 
 wyznacz_poz_obecna:
 	
@@ -296,12 +309,14 @@ wyznacz_poz_obecna:
 	ret
 	
 skroc_ilosc_wierszy:
+
     mov word ptr ds:[real_y], 200
     mov word ptr ds:[real_y1], 200
-	mov word ptr ds:[y0], 200
+	mov word ptr ds:[y0], 199
 	mov ax, word ptr ds:[size_y]                  
     sub ax, 200               
     mov word ptr ds:[omijane_wiersze], ax
+	mov word ptr ds:[ominiete_wiersze], ax
     jmp reszta1
                    
 skroc_ilosc_kolumn:
