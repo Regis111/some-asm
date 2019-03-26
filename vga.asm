@@ -523,26 +523,26 @@ oblicz_bajt: ; wyznacza wartosc bajta do wyswietlenia na podstawie buf i zapisuj
     mov al, byte ptr ds:[b]
     mov bl, 64
     call podziel_al_przez_bl
-    mov ds:[b], al               ;B
+    mov byte ptr ds:[b], al               ;B
     
     mov al, byte ptr ds:[buf+1]
     mov bl, 32
     call podziel_al_przez_bl
     mov bl, 4 
     call pomnoz_al_przez_bl 
-    mov ds:[g], al                 ;G
+    mov byte ptr ds:[g], al                 ;G
     
     mov al, byte ptr ds:[buf+2]
     mov bl, 32
     call podziel_al_przez_bl
     mov bl, 32
     call pomnoz_al_przez_bl
-    mov ds:[r], al                   ;R
+    mov byte ptr ds:[r], al                   ;R
     
     mov bl, byte ptr ds:[b]
     mov bh, byte ptr ds:[g]
     add bl, bh
-    mov bh, byte ptr ds:[g]
+    mov bh, byte ptr ds:[r]
     add bl, bh
     
     mov byte ptr ds:[numer_koloru], bl
@@ -551,15 +551,15 @@ oblicz_bajt: ; wyznacza wartosc bajta do wyswietlenia na podstawie buf i zapisuj
 	mov al, byte ptr ds:[numer_koloru]
 	out dx, al
 	mov dx, 3c9h
-	mov al, byte ptr ds:[buf+2] ;składowa R
+	mov al, byte ptr ds:[buf] ;składowa R
 	shr al, 1
 	shr al, 1
 	out dx, al
-	mov al, byte ptr ds:[buf +1];składowa G
+	mov al, byte ptr ds:[buf+2];składowa G
 	shr al, 1
 	shr al, 1
 	out dx, al
-	mov al, byte ptr ds:[buf] ;składowa B
+	mov al, byte ptr ds:[buf+1] ;składowa B
 	shr al, 1
 	shr al, 1
 	out dx, al
@@ -579,11 +579,11 @@ na_czarno:
 	mov al, 0
 	out dx, al
 	mov dx, 3c9h
-	mov al, 0
+	
 	out dx, al
-	mov al, 0
+	
 	out dx, al
-	mov al, 0
+	
 	out dx, al
 	
 	mov byte ptr ds:[numer_koloru], 0
