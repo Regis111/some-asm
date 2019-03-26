@@ -2,27 +2,26 @@ stos1 segment stack
         dw 200 dup (?)
 wstosu  dw ?
 stos1 ends                            
-
 data1 segment
-    nazwa           	db  "FLAG.bmp",0
+    blad                db  "Nie mozna otworzyc pliku :($"
 	handle          	dw  ?
 	
 	curr_y         		dw  ?
+	curr_x				dw	?
 	
 	real_x          	dw  ?
 	real_y          	dw  ?
+	
+	i					dw	?
+	
+	skala				dw	1
 	
 	omijane_wiersze 	dw  0
 	
 	omijane_kolumny 	dw  0
 	
-	poz_curr_1bajta		dd	?
-	
-	poz_curr_ostbajta	dd	?
-	
 	x0					dw	?
 	y0					dw	?
-	
 	
 	omijane_bajty		dw	0
 	ominiete_wiersze	dw	0
@@ -35,11 +34,10 @@ data1 segment
 	
 	size_hd         	dw  ?
 	
+	size_x1				dw  ?
+	
 	size_x				dw  ?
 	size_y				dw  ?
-	
-	real_x1				dw	?
-	real_y1				dw	?
 	
 	bpp					db  ?
 	            
@@ -47,25 +45,44 @@ data1 segment
 	g               	db  ?
 	r               	db  ?
 	
+	nazwa1				db	30 dup(?)
 data1 ends
 
 code1 segment
-start:	
+start:
+	
+	mov ax, seg nazwa1
+	mov es, ax
+	mov dx, offset nazwa1
+	mov di, dx 
+	xor cx, cx
+	mov si, 82h
+	mov cl, byte ptr ds:[80h]
+	cmp cl, 0
+	jz error1
+	dec cl							
+
+	rep movsb								; czytanie nazwy pliku z 0700:0082h
+	
 	mov sp, offset wstosu
 	mov ax, seg wstosu
-	mov ss, ax
+	mov ss, ax								;inicjacja stosu
 	
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	mov ax, seg nazwa1
+	mov ds, ax
+	mov dx, offset nazwa1
+	mov ax, 3d00h 
+	int 21h
+	jc error1
+	mov word ptr ds:[handle], ax      ;otwarcie pliku handle == file handle 
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	mov al, 13h
 	xor ah, ah
 	int 10h							;wlaczenie trybu graficznego
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	mov ax, seg nazwa
-	mov ds, ax
-	mov dx, offset nazwa
-	mov ax, 3d00h 
-	int 21h
-	mov word ptr ds:[handle], ax      ;otwarcie pliku handle == file handle 
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
 	
 	mov dx, offset buf
 	mov ax, seg buf
@@ -77,7 +94,6 @@ start:
 	int 21h							;przeczytanie wstepu do bufora
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	
 	mov al, byte ptr ds:[buf+18]
 	mov ah, byte ptr ds:[buf+19]
 	mov word ptr ds:[size_x], ax
@@ -87,37 +103,35 @@ start:
 	mov	word ptr ds:[size_y], ax
 	
 	mov al, byte ptr ds:[buf+28]
+	cmp al, 24
+	jnz error1
 	mov byte ptr ds:[bpp], al       		;przeczytanie z bufora wielkosci i bpp           
+	
 	
 	mov al, byte ptr ds:[buf+14]
 	mov byte ptr ds:[size_hd], al
-	mov byte ptr ds:[size_hd+1], 0
+	mov byte ptr ds:[size_hd+1], 0			; przeczytanie wielkosci naglowka
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 	cmp word ptr ds:[size_y], 200
 	ja skroc_ilosc_wierszy
-	jbe nie_skracaj_wierszy
+	jbe nie_skracaj_wierszy					
 
 reszta1:	
 	
 	cmp word ptr ds:[size_x], 320
 	ja skroc_ilosc_kolumn
-	jbe nie_skracaj_kolumn
+	jbe nie_skracaj_kolumn				;wywolanie procedur odpowiedzialnych za dobranie lewego gornego rogu obrazka
 	
 reszta2:
-	
     mov bx, ds:[handle]
     mov ax, 13
     mov dx, word ptr ds:[size_hd]
     add dx, ax 
     xor cx, cx
     mov ax, 4200h
-    int 21h
-    
-	;call wyznacz_poz_bajta
-	;mov word ptr ds:[poz_1_bajta], dx
-	;mov word ptr ds:[poz_1_bajta+2], ax
+    int 21h								;przesuniecie pliku na pierwsze rgb
 	
 omin_wiersze:                                 
     
@@ -130,7 +144,7 @@ omin_wiersze:
     mov cx, dx
     mov dx, ax
     mov ax, 4201h
-    int 21h                            
+    int 21h                            		;pominiecie pierwszych wierszy w celu przesuniecia ramki wzgledem osi Y
 	
 omin_bajty:
 	
@@ -143,110 +157,228 @@ omin_bajty:
 	mov dx, ax
 	mov ax, 4201h
 	int 21h
-	nop
+	nop										;pominiecie pierwszych bajtow w celu przesuniecia ramki wzgledem osi X
 	
-print:
-    mov cx, 200 ;; wykonywac real_y razy
-    petla0:
-        mov word ptr ds:[curr_y], cx
-        push cx
-        mov cx, 320
-        petla1:                  		;; wykonywac real_x razy
-            
-			mov ax, word ptr ds:[y0]
-			mov bx, word ptr ds:[curr_y]
-			dec bx
-			cmp ax, bx
-			jb na_czarno
-			sub ax, word ptr ds:[real_y]
-			inc ax
-			cmp ax, bx
-			ja na_czarno
-			
-			mov bx, 320
-			sub bx, cx
-			mov ax, 0
-			cmp ax, bx
-			ja na_czarno
-			add ax, word ptr ds:[real_x]
-			cmp ax, bx
-			jbe na_czarno
-			
-            call przeczytaj_BGR
-            call oblicz_bajt
-			
-			continue:
-			call oblicz_adres    		;;oblicz adres bajtu i wstaw do si
-            call zaswiec_punkt                          
-        loop petla1
-        
-        xor cx, cx                                        
-        mov bx, ds:[handle]
-        mov ax, word ptr ds:[omijane_kolumny]
-        mov dx, 3
-		mul dx
-		mov dx, ax
-		mov ax, 4201h
-        int 21h                                 ;przesun o [omijane_kolumny]
-        pop cx
+print:										;procedura odpowiedzialna za wyswietlenie obrazka
+	mov dx, 200
+    petla0:									;petla po wysokosci
+	mov word ptr ds:[curr_y], dx
+	push dx
+
+	mov dx, 320
+	
+		petla1:								;petla po szerokosci
+		mov word ptr ds:[curr_x], dx
+		push dx
 		
-    loop petla0
-	
-	;call wyznacz_poz_bajta
-    ;mov word ptr ds:[poz_curr_ostbajta], dx
-	;mov word ptr ds:[poz_curr_ostbajta+2], ax
+		call sprawdz						;sprawdzenie czy piksel ma byc narysowany na tej pozycji
+		call przeczytaj_BGR					;przeczytanie z pliku 3 bajtow
+		call oblicz_bajt					;obliczenie numeru bajtu
+				
+		continue:
+		call oblicz_adres					;obliczenie adresu komorki segmentu A000h
+		call zaswiec_punkt					;wyswietlenie pikseli
+		
+		pop dx
+		cmp dx, 0
+		jz petla0k	
+		sub dx, word ptr ds:[skala]
+		jmp petla1							;sprawdzenie konca petli1
+		
+	petla0k:
+		
+	mov bx, ds:[handle]
+	mov ax, word ptr ds:[omijane_kolumny]
+	mov dx, 3
+	mul dx
+	mov dx, ax
+	mov ax, 4201h
+	int 21h									;omijanie kolumn w pliku
+
+	pop dx
+	cmp dx, 0
+	jz czekaj
+	sub dx, word ptr ds:[skala]		
+	jmp petla0								;sprawdzenie konca petli0
 	
 czekaj:
 	
 	xor ax, ax
-	int 16h
+	int 16h									;czekanie na przycisk z klawiatury
 	
 	cmp al, 'w'
-	je move_up
+	jz w_gore
 	cmp al, 's'
-	je move_down
+	jz w_dol
 	cmp al, 'a'
-	je move_left
+	jz w_lewo
 	cmp al, 'd'
-	je move_right
-   
+	jz w_prawo
+	cmp al, '='
+	jz przybliz
+	;cmp al, '-'
+	;jz oddal
+	
 zamknij_plik:
 
     mov bx, word ptr ds:[handle]
     mov ah, 3eh
-    int 21h
-
-zamknij_program:
-	mov al, 3h
+    int 21h								
+    
+    mov al, 3h
 	mov ah, 0
-	int 10h
-	
+	int 10h 							;wyjscie z trybu 13h
+    
+zamknij_program:
 	mov ax, 4c00h
     int 21h 
 
-move_up:
-	mov ax, word ptr ds:[omijane_wiersze]
-	add ax, 5
-	cmp ax, word ptr ds:[ominiete_wiersze]
+przybliz:
+	sk:
+		xor ah, ah
+		mov al, byte ptr ds:[skala]
+		mov bx, 2
+		mul bl
+		cmp al, 8
+		ja czekaj
+		mov byte ptr ds:[skala], al
+	y:
+		mov ax, word ptr ds:[real_y]
+		mov bx, 2
+		mul bx
+		cmp ax, 200
+		jb mn
+		jae wi
+		mn:
+			mov word ptr ds:[real_y], ax
+			dec ax
+			mov word ptr ds:[y0], ax
+			jmp x
+		wi:
+			mov word ptr ds:[real_y], 200
+			mov word ptr ds:[y0], 199
+			sub ax, 200
+			div byte ptr ds:[skala]
+			xor ah, ah
+			mov word ptr ds:[adres], ax
+			add word ptr ds:[ominiete_wiersze], ax
+			add word ptr ds:[omijane_wiersze], ax
+	x:
+		mov bx, 2
+		mov ax, word ptr ds:[size_x1]
+		div bx
+		mov word ptr ds:[size_x1], ax
+		
+		mov ax, word ptr ds:[real_x]
+		mul bx
+		cmp ax, 320
+		jb mn1
+		jae wi1
+		mn1:
+			mov word ptr ds:[real_x], ax
+			jmp reszta2
+		wi1:
+			mov word ptr ds:[real_x], 320
+			sub ax, 320
+			div byte ptr ds:[skala]
+			xor ah, ah
+			add word ptr ds:[omijane_kolumny], ax
+		jmp reszta2
+;oddal:
+;	cmp byte ptr ds:[skala], 1
+;	jz czekaj
+;	y1:
+;		mov ax, word ptr ds:[omijane_wiersze]
+		;cmp ax, 0
+		;jb mn2
+		;jae wi2
+		;mn2:
+	;		mov bx, 2
+	;		mov ax, word ptr ds:[real_y]
+	;		div bx
+	;		mov word ptr ds:[real_y], ax
+	;		dec ax
+	;		mov word ptr ds:[y0], ax
+	;		jmp sk1
+			;jmp x1
+;		wi2:
+;			mov bl, byte ptr ds:[skala]
+;			div bl
+			;cmp ax, word ptr ds:[omijane_wiersze]
+			;jae ow
+			;jb om
+			ow:
+;				mov ax, 200
+;				div byte ptr ds:[skala]
+;				xor ah, ah
+;				mov ax, word ptr ds:[adres]
+;				sub word ptr ds:[omijane_wiersze], ax
+;				sub word ptr ds:[ominiete_wiersze], ax
+;				mov word ptr ds:[real_y], 200
+;				jmp sk1
+;				;jmp x1
+			;om:
+			;	mov ax, 200
+			;	div byte ptr ds:[skala]
+			;;	add ax, word ptr ds:[real_y]
+				;mov bl, 2
+				;div bl
+				;mov word ptr ds:[real_y], ax
+				;mov word ptr ds:[omijane_wiersze], 0
+;	x1:
+;		mov bx, 2
+;		mov ax, word ptr ds:[size_x1]
+;		mul bx
+;		mov word ptr ds:[size_x1], ax
+;		
+;		mov ax, word ptr ds:[omijane_kolumny]
+;		cmp ax, 0
+;		jb mn3
+;		jae wi3
+;		mn3:
+;			mov ax, word ptr ds:[real_x]
+;			mov bx, 2
+;			div bx
+;			mov word ptr ds:[real_x], ax
+;			jmp sk1
+;		wi3:
+;			div byte ptr ds:[skala]
+;			cmp ax, word ptr ds:[omijane_kolumny]
+;			jae ow1
+;			jb om1
+;			ow1:
+;				mov ax, word ptr ds:[omijane_kolumny]
+;				div byte ptr ds:[skala]
+;				sub word ptr ds:[omijane_wiersze], ax
+;				mov word ptr ds:[real_x], 320
+;				jmp sk1
+;			om1:
+;				mov ax, word ptr ds:[omijane_kolumny]
+;				div byte ptr ds:[skala]
+;				add ax, word ptr ds:[real_x]
+;				mov bl, 2
+;				div bl
+;				mov word ptr ds:[real_x], ax
+;				mov word ptr ds:[omijane_kolumny], 0
+;			
+;	sk1:
+;		xor ah, ah
+;		xor bh, bh
+;		mov al, byte ptr ds:[skala]
+;		mov bl, 2
+;		div bl
+;		mov byte ptr ds:[skala], al
+;		jmp reszta2
+;
+w_gore:
+	mov bx, word ptr ds:[omijane_wiersze]
+	add bx, 5
+	cmp bx, word ptr ds:[ominiete_wiersze]
 	ja czekaj
 	add word ptr ds:[omijane_wiersze], 5
 	jmp reszta2
-	
-	;cmp ds:[y0], 199
-	;jae mama
-	;mov 
-	;cmp ds:[y0], 0
-	;jbe mama1
-	;add ds:[y0], 5
-	;jmp reszta2
-	;mama:
-	;add ds:[omijane_wiersze], 5
-	;sub ds:[real_y], 5
-	;jmp reszta2
-	;mama1:
-	;add ds:[y0], 5
-move_down:
-	
+
+w_dol:
 	cmp word ptr ds:[y0], 199
 	jnz czekaj
 	mov bx, word ptr ds:[omijane_wiersze]
@@ -254,64 +386,30 @@ move_down:
 	js czekaj
 	sub word ptr ds:[omijane_wiersze], 5
 	jmp reszta2
-	;mov ax, word ptr ds:[real_y1]
-	;cmp word ptr ds:[real_y], ax
-	;jnz aa
-	;sub ds:[y0], 5
-	;aa:
-	;cmp ds:[y0], 199
-	;jb bb
-	;sub ds:[omijane_wiersze], 5
-	;add ds:[real_y], 5
-	;bb:
-	;mov ax, word ptr ds:[y0]
-	;sub ax, word ptr ds:[real_y]
 	
-	;cmp ax, 0
-	;ja reszta2
-	;sub word ptr ds:[real_y], 5
-	;jmp reszta2
-	
-move_left:
+w_lewo:
 	
 	mov ax, word ptr ds:[omijane_bajty]
 	sub ax, 5
 	js czekaj
 	sub ds:[omijane_bajty], 5
-	;cmp word ptr ds:[real_x], 320
-	;ja reszta2
-	;add ds:[real_x], 5
-	;sub ds:[omijane_kolumny], 5
 	jmp reszta2
 
-move_right:
+w_prawo:
 	
 	mov ax, word ptr ds:[omijane_bajty]
-	mov dx, 320
-	add ax, dx
+	mov dx, 1
+	mul dx
+	mov bx, word ptr ds:[size_x1]
+	add ax, bx
 	cmp ax, word ptr ds:[size_x]
 	jae czekaj
-	
 	add ds:[omijane_bajty], 5
-	;cmp ds:[real_x], 320
-	;ja reszta2
-	;sub ds:[real_x], 5
-	;;add ds:[omijane_kolumny], 5
 	jmp reszta2
-
-wyznacz_poz_obecna:
-	
-	mov ax, 4201h
-	mov bx, word ptr ds:[handle]
-	xor cx, cx
-	xor dx, dx
-	int 21h
-	ret
 	
 skroc_ilosc_wierszy:
 
     mov word ptr ds:[real_y], 200
-    mov word ptr ds:[real_y1], 200
 	mov word ptr ds:[y0], 199
 	mov ax, word ptr ds:[size_y]                  
     sub ax, 200               
@@ -321,7 +419,7 @@ skroc_ilosc_wierszy:
                    
 skroc_ilosc_kolumn:
     mov word ptr ds:[real_x], 320               
-    mov word ptr ds:[real_x1], 320
+	mov word ptr ds:[size_x1], 320
 	mov ax, word ptr ds:[size_x]
     sub ax, 320               
     mov word ptr ds:[omijane_kolumny], ax
@@ -330,36 +428,37 @@ skroc_ilosc_kolumn:
 
 nie_skracaj_wierszy:
 	mov ax, word ptr ds:[size_y]
-	
 	mov word ptr ds:[y0], ax
-	
 	mov word ptr ds:[real_y], ax 
-	mov word ptr ds:[real_y1], ax
-	
 	jmp reszta1
 
 nie_skracaj_kolumn:
 	mov ax, word ptr ds:[size_x]
-	
+	mov word ptr ds:[size_x1], 320
 	mov word ptr ds:[real_x], ax
-	mov word ptr ds:[real_x1], ax
 	mov word ptr ds:[x0], 0
-	
 	jmp reszta2
+
+sprawdz:
+	mov ax, word ptr ds:[y0]
+	mov bx, word ptr ds:[curr_y]
+	dec bx
+	cmp ax, bx
+	jb na_czarno
+	sub ax, word ptr ds:[real_y]
+	inc ax
+	cmp ax, bx
+	ja na_czarno
 	
-oblicz_adres: ;;cl - x (size_x -> 0)
-    
-    mov bx, word ptr ds:[curr_y]
-    dec bx
-	mov ax, 320
-    mul bx
-    
-    mov bx, 320
-    sub bx, cx
-	
-    add ax, bx
-    mov si, ax
-    ret 
+	mov bx, 320
+	sub bx, word ptr ds:[curr_x]
+	mov ax, 0
+	cmp ax, bx
+	ja na_czarno
+	add ax, word ptr ds:[real_x]
+	cmp ax, bx
+	jbe na_czarno
+	ret
 
 przeczytaj_BGR:         ;wczytuje 3 bajty do handle
     
@@ -369,22 +468,53 @@ przeczytaj_BGR:         ;wczytuje 3 bajty do handle
     
     mov bx, word ptr ds:[handle]
     push cx
-    
     mov cx, 3
     mov ah, 3fh
     int 21h
-    
     pop cx
-    ret           
+    ret  
+
+oblicz_adres:
+
+    mov bx, word ptr ds:[curr_y]
+    dec bx
+
+	mov ax, 320
+    mul bx
+    
+    mov bx, 320
+    sub bx, word ptr ds:[curr_x]
+	dec bx
+    add ax, bx
+    mov si, ax
+    ret 
 
 zaswiec_punkt:  ;na bajcie si wyswietl bl
     
     mov ax, 0A000h
     mov es, ax
     
-    mov al, byte ptr ds:[numer_koloru]
-    ;mov al, 4
-	mov es:[si], al
+	mov cx, word ptr ds:[skala]
+	z1:
+		mov word ptr ds:[i], cx
+		push cx
+		mov cx, word ptr ds:[skala]
+		z2:
+			push si
+			mov bx, word ptr ds:[i]
+			dec bx
+			mov ax, 320
+			mul bx
+			add si, ax
+			
+			add si, cx
+			dec si
+			mov al, byte ptr ds:[numer_koloru]
+			mov es:[si], al
+			pop si
+		loop z2
+		pop cx
+	loop z1
     ret
     
 oblicz_bajt: ; wyznacza wartosc bajta do wyswietlenia na podstawie buf i zapisuje do zmiennej
@@ -416,7 +546,24 @@ oblicz_bajt: ; wyznacza wartosc bajta do wyswietlenia na podstawie buf i zapisuj
     add bl, bh
     
     mov byte ptr ds:[numer_koloru], bl
-    ret
+	
+	mov dx, 3c8h
+	mov al, byte ptr ds:[numer_koloru]
+	out dx, al
+	mov dx, 3c9h
+	mov al, byte ptr ds:[buf+2] ;składowa R
+	shr al, 1
+	shr al, 1
+	out dx, al
+	mov al, byte ptr ds:[buf +1];składowa G
+	shr al, 1
+	shr al, 1
+	out dx, al
+	mov al, byte ptr ds:[buf] ;składowa B
+	shr al, 1
+	shr al, 1
+	out dx, al
+	ret
     
 podziel_al_przez_bl:
     div bl
@@ -428,8 +575,28 @@ pomnoz_al_przez_bl:
     ret
 
 na_czarno:
-	mov byte ptr ds:[numer_koloru], 0
-	jmp continue
+	mov dx, 3c8h
+	mov al, 0
+	out dx, al
+	mov dx, 3c9h
+	mov al, 0
+	out dx, al
+	mov al, 0
+	out dx, al
+	mov al, 0
+	out dx, al
 	
+	mov byte ptr ds:[numer_koloru], 0
+	pop	ax
+	jmp continue
+
+error1:
+    mov dx, offset blad
+    mov ax, seg blad
+    mov ds, ax
+    mov ah, 9
+    int 21h
+    jmp zamknij_program
+    
 code1 ends
 end start
